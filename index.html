@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Afspraak maken – Blinkpunt</title>
+<meta name="description" content="Plan online je afspraak bij Blinkpunt in Monster: reinigen, polijsten of coating.">
+<meta name="theme-color" content="#0a0a0a">
+<!-- Voorbeeld als de link gedeeld wordt (WhatsApp, Facebook) -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Blinkpunt">
+<meta property="og:title" content="Afspraak maken – Blinkpunt">
+<meta property="og:description" content="Plan online je afspraak voor reinigen, polijsten of coating bij Blinkpunt in Monster.">
+<meta property="og:url" content="https://blinkpunt.github.io/">
+<meta property="og:locale" content="nl_NL">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0a;
+    --vlak: #151517;
+    --lijn: #2b2b2f;
+    --tekst: #f5f5f4;
+    --zacht: #a1a1a6;
+    --wit: #ffffff;
+    --fout: #f87171;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--tekst);
+    font-family: "Plus Jakarta Sans", -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+    font-size: 16px; line-height: 1.5; -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 640px; margin: 0 auto; padding: 22px 18px 48px; }
+  button { font: inherit; color: inherit; cursor: pointer; }
+  button:focus-visible, input:focus-visible, textarea:focus-visible, .soort input:focus-visible + span {
+    outline: 2px solid var(--wit); outline-offset: 2px;
+  }
+
+  /* merk + voortgang */
+  .merk { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding-bottom: 18px; border-bottom: 1px solid var(--lijn); margin-bottom: 26px; }
+  .woord { font-weight: 800; font-size: 19px; letter-spacing: 0.02em; }
+  .woord .ster { font-size: 13px; vertical-align: 8px; margin-left: 2px; }
+  .adres { color: var(--zacht); font-size: 14px; text-align: right; }
+  .voortgang { display: flex; align-items: center; gap: 6px; margin-bottom: 14px; }
+  .voortgang i { display: block; height: 3px; width: 28px; border-radius: 3px; background: var(--lijn); }
+  .voortgang i.aan { background: var(--wit); }
+  .voortgang span { color: var(--zacht); font-size: 13px; margin-left: 6px; }
+  h1 { font-size: 30px; line-height: 1.15; font-weight: 800; margin: 0 0 8px; letter-spacing: -0.015em; }
+  .intro { color: var(--zacht); margin: 0 0 24px; max-width: 34em; }
+  .terug { background: none; border: 0; color: var(--zacht); padding: 0; margin-bottom: 18px; font-size: 15px; }
+  .terug:hover { color: var(--wit); }
+
+  /* stap 1: diensten */
+  .dienst {
+    display: grid; grid-template-columns: 1fr auto; gap: 4px 16px; align-items: center;
+    width: 100%; text-align: left; background: var(--vlak);
+    border: 1px solid var(--lijn); border-radius: 18px; padding: 18px 20px; margin-bottom: 12px;
+  }
+  @media (hover: hover) { .dienst:hover { border-color: #5a5a60; } }
+  .dienst b { font-size: 18px; font-weight: 700; }
+  .dienst .duur { grid-row: 1; grid-column: 2; font-size: 14px; font-weight: 600; border: 1px solid var(--lijn); border-radius: 999px; padding: 3px 12px; white-space: nowrap; }
+  .dienst .uitleg { grid-column: 1 / -1; color: var(--zacht); font-size: 15px; }
+
+  /* stap 2: week */
+  .weeknav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+  .weeknav b { font-size: 17px; }
+  .pijl { width: 42px; height: 42px; border-radius: 999px; border: 1px solid var(--lijn); background: transparent; font-size: 18px; }
+  .pijl:hover:not(:disabled) { border-color: var(--wit); }
+  .pijl:disabled { opacity: .3; cursor: default; }
+  .dag { display: grid; grid-template-columns: 150px 1fr; gap: 14px; align-items: center; padding: 14px 0; border-top: 1px solid var(--lijn); }
+  .dag:last-child { border-bottom: 1px solid var(--lijn); }
+  .dnaam b { display: block; font-weight: 700; text-transform: capitalize; }
+  .dnaam span { color: var(--zacht); font-size: 14px; }
+  .slots { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .slot {
+    border: 1px solid var(--wit); background: transparent; border-radius: 14px;
+    padding: 9px 12px; text-align: left; line-height: 1.3;
+  }
+  .slot b { display: block; font-weight: 700; font-size: 15px; }
+  .slot small { color: var(--zacht); font-size: 13px; }
+  @media (hover: hover) {
+    .slot:hover:not(:disabled) { background: var(--wit); color: #000; }
+    .slot:hover:not(:disabled) small { color: #444; }
+  }
+  .slot:active:not(:disabled) { background: var(--wit); color: #000; }
+  .dag.dicht .dnaam { opacity: .45; }
+  .dag.dicht .status { color: #6b6b70; font-size: 14px; }
+  .slot:disabled { border-color: var(--lijn); color: #6b6b70; cursor: default; }
+  .slot:disabled small { color: #55555a; }
+  .slot.breed { grid-column: 1 / -1; }
+  @media (max-width: 520px) {
+    .dag { grid-template-columns: 1fr; gap: 8px; }
+    .dnaam b, .dnaam span { display: inline; }
+    .dnaam span { margin-left: 6px; }
+  }
+
+  /* stap 3: gegevens */
+  .samenvatting { background: var(--vlak); border: 1px solid var(--lijn); border-radius: 18px; padding: 16px 20px; margin-bottom: 8px; }
+  .samenvatting b { display: block; font-size: 17px; }
+  .samenvatting span { color: var(--zacht); }
+  fieldset { border: 0; padding: 0; margin: 0; }
+  legend, label { display: block; font-size: 14px; color: var(--zacht); margin: 18px 0 8px; padding: 0; }
+  .soorten { display: flex; flex-wrap: wrap; gap: 8px; }
+  .soort { margin: 0; color: var(--tekst); font-size: inherit; }
+  .soort input { position: absolute; opacity: 0; pointer-events: none; }
+  .soort span { display: inline-block; border: 1px solid var(--lijn); border-radius: 999px; padding: 9px 16px; cursor: pointer; font-weight: 600; font-size: 15px; }
+  .soort input:checked + span { background: var(--wit); color: #000; border-color: var(--wit); }
+  input[type=text], input[type=email], input[type=tel], textarea {
+    width: 100%; background: var(--vlak); border: 1px solid var(--lijn); border-radius: 12px;
+    color: var(--tekst); font: inherit; padding: 13px 14px;
+  }
+  textarea { min-height: 96px; resize: vertical; }
+  .rij { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  @media (max-width: 520px) { .rij { grid-template-columns: 1fr; gap: 0; } }
+  .verstuur {
+    margin-top: 26px; width: 100%; background: var(--wit); color: #000; border: 0;
+    border-radius: 999px; padding: 15px; font-size: 16px; font-weight: 700;
+  }
+  .verstuur:disabled { opacity: .55; cursor: default; }
+  .notitie { color: var(--zacht); font-size: 14px; margin-top: 12px; }
+  .fout { color: var(--fout); margin-top: 14px; }
+  .fout button { margin-top: 10px; background: none; border: 1px solid var(--wit); border-radius: 999px; padding: 8px 16px; font-weight: 600; }
+  .laden, .leeg { color: var(--zacht); padding: 18px 0; }
+  /* honeypot: onzichtbaar veld dat alleen spambots invullen */
+  .hp { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+
+  /* klaar */
+  .ster-groot { font-size: 46px; line-height: 1; display: block; margin: 8px 0 14px; }
+  @media (prefers-reduced-motion: no-preference) {
+    .ster-groot { animation: fonkel .7s ease-out; }
+    @keyframes fonkel { from { transform: scale(.4) rotate(-45deg); opacity: 0; } to { transform: none; opacity: 1; } }
+  }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<main class="wrap">
+  <header class="merk">
+    <span class="woord">BLINKPUNT<span class="ster" aria-hidden="true">✦</span></span>
+    <span class="adres" id="adres"></span>
+  </header>
+
+  <!-- Stap 1: dienst -->
+  <section id="s1">
+    <div class="voortgang" aria-label="Stap 1 van 3"><i class="aan"></i><i></i><i></i><span>Stap 1 van 3</span></div>
+    <h1>Plan je afspraak</h1>
+    <p class="intro">Kies wat je wilt laten doen. Daarna zie je per week wanneer we plek hebben.</p>
+    <div id="diensten"><p class="laden">Diensten laden…</p></div>
+  </section>
+
+  <!-- Stap 2: moment -->
+  <section id="s2" hidden>
+    <button class="terug" onclick="naar('s1')">← Andere dienst</button>
+    <div class="voortgang" aria-label="Stap 2 van 3"><i class="aan"></i><i class="aan"></i><i></i><span>Stap 2 van 3</span></div>
+    <h1 id="s2titel"></h1>
+    <p class="intro" id="s2uitleg"></p>
+    <div id="week" hidden>
+      <div class="weeknav">
+        <button class="pijl" id="vorige" onclick="week(-1)" aria-label="Vorige week">‹</button>
+        <b id="weeklabel"></b>
+        <button class="pijl" id="volgende" onclick="week(1)" aria-label="Volgende week">›</button>
+      </div>
+      <div id="dagen"></div>
+    </div>
+    <div id="s2status"></div>
+  </section>
+
+  <!-- Stap 3: gegevens -->
+  <section id="s3" hidden>
+    <button class="terug" onclick="naar('s2')">← Ander moment</button>
+    <div class="voortgang" aria-label="Stap 3 van 3"><i class="aan"></i><i class="aan"></i><i class="aan"></i><span>Stap 3 van 3</span></div>
+    <h1>Je gegevens</h1>
+    <div class="samenvatting"><b id="sDienst"></b><span id="sWanneer"></span></div>
+
+    <fieldset id="soortVeld" hidden>
+      <legend>Wat moet er schoongemaakt worden?</legend>
+      <div class="soorten" id="soorten"></div>
+    </fieldset>
+
+    <div class="rij">
+      <div><label for="naam">Naam</label><input type="text" id="naam" autocomplete="name"></div>
+      <div><label for="telefoon">Telefoonnummer</label><input type="tel" id="telefoon" autocomplete="tel" placeholder="06 …"></div>
+    </div>
+    <label for="email">E-mailadres</label>
+    <input type="email" id="email" autocomplete="email">
+    <label for="auto">Automerk en model</label>
+    <input type="text" id="auto" placeholder="Bijv. Volkswagen Golf">
+    <label for="opmerking">Opmerkingen (optioneel)</label>
+    <textarea id="opmerking" placeholder="Bijv. hondenharen, vlekken in de bekleding, krasjes op de motorkap"></textarea>
+    <div class="hp" aria-hidden="true">
+      <label for="website">Laat dit veld leeg</label>
+      <input type="text" id="website" name="website" tabindex="-1" autocomplete="off">
+    </div>
+
+    <button class="verstuur" id="verstuur" onclick="verstuur()">Aanvraag versturen</button>
+    <p class="notitie">Je afspraak staat vast zodra je onze bevestiging per mail hebt ontvangen.</p>
+    <div class="fout" id="fout" role="alert"></div>
+  </section>
+
+  <!-- Klaar -->
+  <section id="s4" hidden>
+    <span class="ster-groot" aria-hidden="true">✦</span>
+    <h1>Aanvraag verstuurd</h1>
+    <p class="intro" id="klaarTekst"></p>
+    <p class="intro">We checken de planning en sturen je zo snel mogelijk een bevestiging per mail. Zie je onze bevestiging niet in je inbox staan? Check dan ook je spamfolder.</p>
+  </section>
+</main>
+
+<script>
+  // URL van de Apps Script-webapp (Implementeren → Implementaties beheren → URL van de web-app, eindigt op /exec)
+  var API = 'https://script.google.com/macros/s/AKfycbwtv5KDAa4JA3iY2qK-1mNjrsrFjxlAoAyB00bZFUUtl8SJ94CXNihpwebyV4FvP3ZV/exec';
+
+  var DAGEN = ['zondag', 'maandag', 'dinsdag', 'woensdag', 'donderdag', 'vrijdag', 'zaterdag'];
+  var MND = ['januari', 'februari', 'maart', 'april', 'mei', 'juni', 'juli', 'augustus', 'september', 'oktober', 'november', 'december'];
+  var MNDK = ['jan', 'feb', 'mrt', 'apr', 'mei', 'jun', 'jul', 'aug', 'sep', 'okt', 'nov', 'dec'];
+  var cfg = null, keuze = {}, data = null, map = {}, weken = [], wi = 0;
+
+  function $(id) { return document.getElementById(id); }
+  function hoofdletter(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+  function el(tag, cls, tekst) {
+    var e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (tekst != null) e.textContent = tekst;
+    return e;
+  }
+  function pad(n) { return (n < 10 ? '0' : '') + n; }
+  function parse(k) { var p = k.split('-'); return new Date(+p[0], +p[1] - 1, +p[2]); }
+  function sleutel(d) { return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
+  function plus(d, n) { var x = new Date(d); x.setDate(x.getDate() + n); return x; }
+  function maandagVan(d) { return plus(d, -((d.getDay() + 6) % 7)); }
+  function naar(id) {
+    ['s1', 's2', 's3', 's4'].forEach(function (s) { $(s).hidden = s !== id; });
+    window.scrollTo(0, 0);
+  }
+
+  // Praten met Apps Script. Zonder extra headers, zodat de browser geen CORS-voorcontrole doet.
+  function lees(r) {
+    if (!r.ok) throw new Error('Er ging iets mis. Probeer het opnieuw.');
+    return r.json().then(function (j) {
+      if (!j.ok) throw new Error(j.fout || 'Er ging iets mis. Probeer het opnieuw.');
+      return j.data;
+    });
+  }
+  function geenVerbinding() { throw new Error('Geen verbinding. Probeer het opnieuw.'); }
+  function vraag(params) { return fetch(API + '?' + new URLSearchParams(params)).then(lees, geenVerbinding); }
+  function stuur(data) { return fetch(API, { method: 'POST', body: JSON.stringify(data) }).then(lees, geenVerbinding); }
+
+  vraag({ api: 'config' })
+    .then(function (c) { cfg = c; start(); })
+    .catch(function () { $('diensten').innerHTML = '<p class="fout">Laden lukt niet. Ververs de pagina of stuur ons een appje.</p>'; });
+
+  function start() {
+    $('adres').textContent = cfg.adres.replace(/, \d{4} ?[A-Z]{2}/, ',');
+    var box = $('diensten');
+    box.innerHTML = '';
+    cfg.diensten.forEach(function (d) {
+      var knop = el('button', 'dienst');
+      knop.appendChild(el('b', null, d.naam));
+      knop.appendChild(el('span', 'duur', d.type === 'dagdeel' ? 'Halve dag' : d.dagen + ' werkdagen'));
+      knop.appendChild(el('span', 'uitleg', d.type === 'dagdeel'
+        ? 'Binnen, buiten of allebei. Je brengt de auto in de ochtend of middag.'
+        : 'Je brengt de auto om 08:00. Hij is ' + d.dagen + ' werkdagen bij ons.'));
+      knop.onclick = function () { kiesDienst(d); };
+      box.appendChild(knop);
+    });
+    var sb = $('soorten');
+    cfg.soorten.forEach(function (s, i) {
+      var l = el('label', 'soort');
+      var inp = document.createElement('input');
+      inp.type = 'radio'; inp.name = 'soort'; inp.value = s; inp.id = 'soort' + i;
+      l.appendChild(inp); l.appendChild(el('span', null, s));
+      sb.appendChild(l);
+    });
+  }
+
+  function kiesDienst(d) {
+    keuze = { dienst: d };
+    $('s2titel').textContent = d.naam;
+    $('s2uitleg').textContent = d.type === 'dagdeel'
+      ? 'Kies een ochtend of middag. Dan breng je de auto aan het begin van dat dagdeel.'
+      : 'Kies de dag waarop je de auto om 08:00 brengt. Je ziet meteen wanneer hij klaar is.';
+    $('week').hidden = true;
+    $('s2status').innerHTML = '<p class="laden">Vrije momenten zoeken…</p>';
+    naar('s2');
+    var deze = keuze;
+    vraag({ api: 'beschikbaarheid', dienst: d.id })
+      .then(function (res) { if (keuze === deze) ontvangMomenten(res); })
+      .catch(function () { if (keuze === deze) $('s2status').innerHTML = '<p class="fout">Laden lukt niet. Probeer het opnieuw.</p>'; });
+  }
+
+  function weekDagen(maandag) {
+    var n = 6, uit = []; // ma t/m za, ook voor polijsten en coating
+    for (var i = 0; i < n; i++) uit.push(plus(maandag, i));
+    return uit;
+  }
+
+  function ontvangMomenten(res) {
+    data = res; map = {};
+    res.momenten.forEach(function (m) { map[m.datum] = m; });
+    weken = [];
+    for (var m = maandagVan(parse(res.van)); sleutel(m) <= res.tot; m = plus(m, 7)) {
+      var binnen = weekDagen(m).some(function (d) { var k = sleutel(d); return k >= res.van && k <= res.tot; });
+      if (binnen) weken.push(m); // geen weken tonen die helemaal buiten het boekvenster vallen
+    }
+    if (!res.momenten.length) {
+      $('s2status').innerHTML = '';
+      $('s2status').appendChild(el('p', 'leeg', 'De komende weken zit het vol voor deze dienst. Stuur ons een appje, dan zoeken we samen een moment.'));
+      return;
+    }
+    wi = 0;
+    for (var i = 0; i < weken.length; i++) {
+      if (weekDagen(weken[i]).some(function (d) { return map[sleutel(d)]; })) { wi = i; break; }
+    }
+    $('s2status').innerHTML = '';
+    $('week').hidden = false;
+    toonWeek();
+  }
+
+  function week(stap) {
+    wi = Math.max(0, Math.min(weken.length - 1, wi + stap));
+    toonWeek();
+  }
+
+  function slotKnop(titel, sub, actief, breed) {
+    var b = el('button', 'slot' + (breed ? ' breed' : ''));
+    b.appendChild(el('b', null, titel));
+    b.appendChild(el('small', null, sub));
+    b.disabled = !actief;
+    return b;
+  }
+
+  function toonWeek() {
+    var ma = weken[wi], dagen = weekDagen(ma), eind = plus(ma, 5);
+    $('weeklabel').textContent = ma.getMonth() === eind.getMonth()
+      ? ma.getDate() + ' – ' + eind.getDate() + ' ' + MNDK[eind.getMonth()]
+      : ma.getDate() + ' ' + MNDK[ma.getMonth()] + ' – ' + eind.getDate() + ' ' + MNDK[eind.getMonth()];
+    $('vorige').disabled = wi === 0;
+    $('volgende').disabled = wi === weken.length - 1;
+
+    var box = $('dagen');
+    box.innerHTML = '';
+    dagen.forEach(function (d) {
+      var k = sleutel(d), m = map[k];
+      var rij = el('div', 'dag');
+      var naam = el('div', 'dnaam');
+      naam.appendChild(el('b', null, DAGEN[d.getDay()]));
+      naam.appendChild(el('span', null, d.getDate() + ' ' + MND[d.getMonth()]));
+      rij.appendChild(naam);
+      if (k < data.van || k > data.tot) {
+        rij.className = 'dag dicht';
+        rij.appendChild(el('span', 'status', k < data.van ? 'Niet meer te boeken' : 'Nog niet te boeken'));
+        box.appendChild(rij);
+        return;
+      }
+      var slots = el('div', 'slots');
+
+      if (keuze.dienst.type === 'dagdeel') {
+        ['ochtend', 'middag'].forEach(function (dd) {
+          var vrij = !!(m && m.opties.indexOf(dd) >= 0);
+          var knop = slotKnop(hoofdletter(dd), vrij ? cfg.tijden[dd] : 'Vol', vrij);
+          if (vrij) knop.onclick = function () {
+            kiesMoment(k, dd, hoofdletter(m.label) + ', ' + dd + ' (' + cfg.tijden[dd] + ')');
+          };
+          slots.appendChild(knop);
+        });
+      } else {
+        var knop = m
+          ? slotKnop('Brengen om 08:00', 'Klaar ' + m.klaar + ' rond 17:00', true, true)
+          : slotKnop('Vol', 'Kies een andere startdag', false, true);
+        if (m) knop.onclick = function () {
+          kiesMoment(k, null, 'Brengen ' + m.label + ' om 08:00, klaar ' + m.klaar + ' rond 17:00');
+        };
+        slots.appendChild(knop);
+      }
+      rij.appendChild(slots);
+      box.appendChild(rij);
+    });
+  }
+
+  function kiesMoment(datum, dagdeel, tekst) {
+    keuze.datum = datum;
+    keuze.dagdeel = dagdeel;
+    $('sDienst').textContent = keuze.dienst.naam;
+    $('sWanneer').textContent = tekst;
+    $('soortVeld').hidden = keuze.dienst.type !== 'dagdeel';
+    $('fout').innerHTML = '';
+    naar('s3');
+  }
+
+  function toonFout(tekst, terugNaarWeek) {
+    var f = $('fout');
+    f.innerHTML = '';
+    f.appendChild(el('p', null, tekst));
+    if (terugNaarWeek) {
+      var b = el('button', null, 'Kies een ander moment');
+      b.onclick = function () { kiesDienst(keuze.dienst); };
+      f.appendChild(b);
+    }
+  }
+
+  function verstuur() {
+    var soort = document.querySelector('input[name=soort]:checked');
+    if (keuze.dienst.type === 'dagdeel' && !soort) { toonFout('Kies wat er schoongemaakt moet worden.'); return; }
+    var velden = ['naam', 'telefoon', 'email', 'auto'];
+    for (var i = 0; i < velden.length; i++) {
+      if (!$(velden[i]).value.trim()) {
+        toonFout('Vul je naam, telefoonnummer, e-mailadres en auto in.');
+        $(velden[i]).focus();
+        return;
+      }
+    }
+    var knop = $('verstuur');
+    knop.disabled = true;
+    knop.textContent = 'Aanvraag versturen…';
+    $('fout').innerHTML = '';
+    stuur({
+      dienst: keuze.dienst.id, datum: keuze.datum, dagdeel: keuze.dagdeel,
+      soort: soort ? soort.value : '',
+      naam: $('naam').value, telefoon: $('telefoon').value, email: $('email').value,
+      auto: $('auto').value, opmerking: $('opmerking').value,
+      website: $('website').value // honeypot
+    })
+      .then(function (r) {
+        $('klaarTekst').textContent = 'We hebben je aanvraag voor ' + r.dienst.toLowerCase() + ' ontvangen: ' + r.wanneer + '.';
+        naar('s4');
+      })
+      .catch(function (e) {
+        knop.disabled = false;
+        knop.textContent = 'Aanvraag versturen';
+        var msg = (e && e.message) ? e.message : 'Versturen lukt niet. Probeer het opnieuw.';
+        toonFout(msg, msg.indexOf('vastgelegd') >= 0);
+      });
+  }
+</script>
+</body>
+</html>
