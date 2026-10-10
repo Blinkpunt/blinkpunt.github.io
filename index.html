@@ -6,6 +6,7 @@
 <title>Afspraak maken – Blinkpunt</title>
 <meta name="description" content="Plan online je afspraak bij Blinkpunt in Monster: reinigen, polijsten of coating.">
 <meta name="theme-color" content="#0a0a0a">
+<link rel="icon" href="data:,">
 <!-- Voorbeeld als de link gedeeld wordt (WhatsApp, Facebook) -->
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Blinkpunt">
@@ -214,7 +215,20 @@
   var DAGEN = ['zondag', 'maandag', 'dinsdag', 'woensdag', 'donderdag', 'vrijdag', 'zaterdag'];
   var MND = ['januari', 'februari', 'maart', 'april', 'mei', 'juni', 'juli', 'augustus', 'september', 'oktober', 'november', 'december'];
   var MNDK = ['jan', 'feb', 'mrt', 'apr', 'mei', 'jun', 'jul', 'aug', 'sep', 'okt', 'nov', 'dec'];
-  var cfg = null, keuze = {}, data = null, map = {}, weken = [], wi = 0;
+  var keuze = {}, data = null, map = {}, weken = [], wi = 0;
+
+  // Zelfde gegevens als CONFIG in Code.gs, zodat de diensten meteen in beeld staan.
+  // Bij het laden worden ze vervangen door wat Apps Script teruggeeft.
+  var cfg = {
+    diensten: [
+      { id: 'reinigen', naam: 'Reinigen', type: 'dagdeel', dagen: 0 },
+      { id: 'polijsten', naam: 'Polijsten', type: 'meerdaags', dagen: 2 },
+      { id: 'coating', naam: 'Coating', type: 'meerdaags', dagen: 4 }
+    ],
+    tijden: { ochtend: '08:00–12:00', middag: '13:00–17:00' },
+    soorten: ['Binnen', 'Buiten', 'Binnen en buiten'],
+    adres: 'Havenstraat 54, 2681 LC Monster'
+  };
 
   function $(id) { return document.getElementById(id); }
   function hoofdletter(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
@@ -234,21 +248,106 @@
     window.scrollTo(0, 0);
   }
 
-  // Praten met Apps Script. Zonder extra headers, zodat de browser geen CORS-voorcontrole doet.
-  function lees(r) {
-    if (!r.ok) throw new Error('Er ging iets mis. Probeer het opnieuw.');
-    return r.json().then(function (j) {
-      if (!j.ok) throw new Error(j.fout || 'Er ging iets mis. Probeer het opnieuw.');
-      return j.data;
+  // ===== Praten met Apps Script =====
+  // Zonder extra headers, zodat de browser geen CORS-voorcontrole doet.
+  // Google is soms traag of geeft een 404, terwijl het script zelf in ±1 seconde klaar is.
+  // Daarom: elke poging heeft een tijdslimiet, en vragen om gegevens worden zo nodig opnieuw gestart.
+
+  var veiligOpnieuw = false; // true als Apps Script verzoekIds kent: dan kan versturen veilig herhaald worden
+
+  function Fout(tekst, vanServer) { var e = new Error(tekst); e.vanServer = !!vanServer; return e; }
+  function wacht(ms) { return new Promise(function (ok) { setTimeout(ok, ms); }); }
+
+  /** Eén poging: fetch + JSON lezen, afgebroken na `ms` milliseconden. */
+  function poging(url, opties, ms) {
+    var ctrl = window.AbortController ? new AbortController() : null;
+    if (ctrl) opties.signal = ctrl.signal;
+    var t = setTimeout(function () { if (ctrl) ctrl.abort(); }, ms);
+    return fetch(url, opties)
+      .then(function (r) {
+        if (!r.ok) throw Fout('HTTP ' + r.status);
+        return r.json().catch(function () { throw Fout('Geen geldig antwoord'); });
+      })
+      .then(function (j) {
+        clearTimeout(t);
+        if (!j.ok) throw Fout(j.fout || 'Er ging iets mis. Probeer het opnieuw.', true);
+        return j.data;
+      }, function (e) { clearTimeout(t); throw e; });
+  }
+
+  /** Gegevens ophalen. Geen antwoord na 4 of 9 seconden, of een fout? Dan nog een poging; het eerste antwoord telt. */
+  function haal(params) {
+    return new Promise(function (resolve, reject) {
+      var gestart = 0, lopend = 0, klaar = false, timers = [];
+      function stop() { klaar = true; timers.forEach(clearTimeout); }
+      function start() {
+        if (klaar || gestart >= 3) return;
+        gestart++; lopend++;
+        var url = API + '?' + new URLSearchParams(params) + '&_=' + Date.now() + gestart;
+        poging(url, {}, 15000).then(function (d) {
+          if (!klaar) { stop(); resolve(d); }
+        }, function (e) {
+          lopend--;
+          if (klaar) return;
+          if (e.vanServer) { stop(); reject(e); return; }
+          if (gestart < 3) start();
+          else if (lopend === 0) { stop(); reject(Fout('Laden lukt niet.')); }
+        });
+      }
+      start();
+      timers.push(setTimeout(start, 4000), setTimeout(start, 9000));
     });
   }
-  function geenVerbinding() { throw new Error('Geen verbinding. Probeer het opnieuw.'); }
-  function vraag(params) { return fetch(API + '?' + new URLSearchParams(params)).then(lees, geenVerbinding); }
-  function stuur(data) { return fetch(API, { method: 'POST', body: JSON.stringify(data) }).then(lees, geenVerbinding); }
 
-  vraag({ api: 'config' })
-    .then(function (c) { cfg = c; start(); })
-    .catch(function () { $('diensten').innerHTML = '<p class="fout">Laden lukt niet. Ververs de pagina of stuur ons een appje.</p>'; });
+  /** Aanvraag versturen. Alleen opnieuw proberen als Apps Script dubbele aanvragen herkent (verzoekId). */
+  function stuur(data) {
+    var max = veiligOpnieuw ? 3 : 1;
+    function probeer(n) {
+      return poging(API, { method: 'POST', body: JSON.stringify(data) }, 30000).catch(function (e) {
+        if (e.vanServer) throw e;
+        if (n < max) return wacht(1500).then(function () { return probeer(n + 1); });
+        throw Fout('Er ging iets mis bij het versturen, dus we weten niet zeker of je aanvraag is aangekomen. ' +
+          'Kijk over een paar minuten in je mail (ook in je spamfolder). ' +
+          (veiligOpnieuw ? 'Geen mail? Druk dan nog een keer op versturen; je aanvraag komt er niet dubbel in.'
+                         : 'Geen mail gekregen? Stuur ons dan een appje.'), true);
+      });
+    }
+    return probeer(1);
+  }
+
+  function nieuwId() {
+    var a = new Uint8Array(16);
+    (window.crypto || window.msCrypto).getRandomValues(a);
+    return Array.prototype.map.call(a, function (x) { return (x < 16 ? '0' : '') + x.toString(16); }).join('');
+  }
+
+  // ===== Planning vooraf ophalen, zodra de pagina opent =====
+  var planning = {}, voorafKlaar = false;
+  function bewaar(id, d) { planning[id] = { data: d, tijd: Date.now() }; return d; }
+  function nieuweConfig(c) { if (JSON.stringify(c) !== JSON.stringify(cfg)) { cfg = c; start(); } }
+
+  start(); // meteen tekenen met de standaardgegevens hierboven
+
+  var vooraf = haal({ api: 'alles' })
+    .then(function (d) {
+      veiligOpnieuw = !!d.verzoekIds;
+      nieuweConfig(d.config);
+      Object.keys(d.beschikbaarheid).forEach(function (id) { bewaar(id, d.beschikbaarheid[id]); });
+    }, function () {
+      // Oudere Apps Script-versie zonder 'alles': instellingen en planning per dienst los ophalen
+      return Promise.all([haal({ api: 'config' }).then(nieuweConfig)].concat(cfg.diensten.map(function (d) {
+        return haal({ api: 'beschikbaarheid', dienst: d.id }).then(function (b) { bewaar(d.id, b); });
+      })));
+    })
+    .then(function () { voorafKlaar = true; }, function () { voorafKlaar = true; });
+
+  /** Vrije momenten voor een dienst: uit wat al opgehaald is (max. 3 minuten oud), anders opnieuw. */
+  function planningVoor(id, vers) {
+    var p = planning[id];
+    if (!vers && p && Date.now() - p.tijd < 180000) return Promise.resolve(p.data);
+    if (!vers && !voorafKlaar) return vooraf.then(function () { return planningVoor(id); });
+    return haal({ api: 'beschikbaarheid', dienst: id }).then(function (d) { return bewaar(id, d); });
+  }
 
   function start() {
     $('adres').textContent = cfg.adres.replace(/, \d{4} ?[A-Z]{2}/, ',');
@@ -265,6 +364,7 @@
       box.appendChild(knop);
     });
     var sb = $('soorten');
+    sb.innerHTML = '';
     cfg.soorten.forEach(function (s, i) {
       var l = el('label', 'soort');
       var inp = document.createElement('input');
@@ -274,7 +374,7 @@
     });
   }
 
-  function kiesDienst(d) {
+  function kiesDienst(d, vers) {
     keuze = { dienst: d };
     $('s2titel').textContent = d.naam;
     $('s2uitleg').textContent = d.type === 'dagdeel'
@@ -284,9 +384,18 @@
     $('s2status').innerHTML = '<p class="laden">Vrije momenten zoeken…</p>';
     naar('s2');
     var deze = keuze;
-    vraag({ api: 'beschikbaarheid', dienst: d.id })
+    planningVoor(d.id, vers)
       .then(function (res) { if (keuze === deze) ontvangMomenten(res); })
-      .catch(function () { if (keuze === deze) $('s2status').innerHTML = '<p class="fout">Laden lukt niet. Probeer het opnieuw.</p>'; });
+      .catch(function () {
+        if (keuze !== deze) return;
+        var f = el('div', 'fout');
+        f.appendChild(el('p', null, 'Laden lukt even niet.'));
+        var b = el('button', null, 'Opnieuw proberen');
+        b.onclick = function () { kiesDienst(d, true); };
+        f.appendChild(b);
+        $('s2status').innerHTML = '';
+        $('s2status').appendChild(f);
+      });
   }
 
   function weekDagen(maandag) {
@@ -381,6 +490,7 @@
   function kiesMoment(datum, dagdeel, tekst) {
     keuze.datum = datum;
     keuze.dagdeel = dagdeel;
+    keuze.verzoekId = nieuwId(); // zelfde aanvraag opnieuw versturen = geen dubbele boeking
     $('sDienst').textContent = keuze.dienst.naam;
     $('sWanneer').textContent = tekst;
     $('soortVeld').hidden = keuze.dienst.type !== 'dagdeel';
@@ -394,7 +504,7 @@
     f.appendChild(el('p', null, tekst));
     if (terugNaarWeek) {
       var b = el('button', null, 'Kies een ander moment');
-      b.onclick = function () { kiesDienst(keuze.dienst); };
+      b.onclick = function () { kiesDienst(keuze.dienst, true); };
       f.appendChild(b);
     }
   }
@@ -413,19 +523,23 @@
     var knop = $('verstuur');
     knop.disabled = true;
     knop.textContent = 'Aanvraag versturen…';
+    var traag = setTimeout(function () { knop.textContent = 'Nog even geduld…'; }, 6000);
     $('fout').innerHTML = '';
     stuur({
       dienst: keuze.dienst.id, datum: keuze.datum, dagdeel: keuze.dagdeel,
       soort: soort ? soort.value : '',
       naam: $('naam').value, telefoon: $('telefoon').value, email: $('email').value,
       auto: $('auto').value, opmerking: $('opmerking').value,
-      website: $('website').value // honeypot
+      website: $('website').value, // honeypot
+      verzoekId: keuze.verzoekId
     })
       .then(function (r) {
+        clearTimeout(traag);
         $('klaarTekst').textContent = 'We hebben je aanvraag voor ' + r.dienst.toLowerCase() + ' ontvangen: ' + r.wanneer + '.';
         naar('s4');
       })
       .catch(function (e) {
+        clearTimeout(traag);
         knop.disabled = false;
         knop.textContent = 'Aanvraag versturen';
         var msg = (e && e.message) ? e.message : 'Versturen lukt niet. Probeer het opnieuw.';
