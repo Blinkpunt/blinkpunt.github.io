@@ -366,7 +366,7 @@
         : 'Je brengt de auto om 08:00. Hij is ' + d.dagen + ' werkdagen bij ons.');
       if (PRIJZEN[d.id]) { // als volgende zin achter de uitleg; \u00a0 = spatie waar de regel niet mag afbreken
         uitleg.appendChild(document.createTextNode(' '));
-        uitleg.appendChild(el('span', 'prijs', 'Vanaf\u00a0€' + PRIJZEN[d.id] + ' excl.\u00a0btw.'));
+        uitleg.appendChild(el('span', 'prijs', 'Vanaf\u00a0€' + PRIJZEN[d.id] + ' exclusief\u00a0btw.'));
       }
       knop.appendChild(uitleg);
       knop.onclick = function () { kiesDienst(d); };
