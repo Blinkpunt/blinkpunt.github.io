@@ -359,14 +359,13 @@
     box.innerHTML = '';
     cfg.diensten.forEach(function (d) {
       var knop = el('button', 'dienst');
-      var titel = el('span');
-      titel.appendChild(el('b', null, d.naam));
-      if (PRIJZEN[d.id]) titel.appendChild(el('span', 'prijs', 'vanaf €' + PRIJZEN[d.id]));
-      knop.appendChild(titel);
+      knop.appendChild(el('b', null, d.naam));
       knop.appendChild(el('span', 'duur', d.type === 'dagdeel' ? 'Halve dag' : d.dagen + ' werkdagen'));
-      knop.appendChild(el('span', 'uitleg', d.type === 'dagdeel'
+      var uitleg = el('span', 'uitleg', d.type === 'dagdeel'
         ? 'Binnen, buiten of allebei. Je brengt de auto in de ochtend of middag.'
-        : 'Je brengt de auto om 08:00. Hij is ' + d.dagen + ' werkdagen bij ons.'));
+        : 'Je brengt de auto om 08:00. Hij is ' + d.dagen + ' werkdagen bij ons.');
+      if (PRIJZEN[d.id]) uitleg.appendChild(el('span', 'prijs', 'vanaf €' + PRIJZEN[d.id])); // achter de uitleg
+      knop.appendChild(uitleg);
       knop.onclick = function () { kiesDienst(d); };
       box.appendChild(knop);
     });
