@@ -60,7 +60,7 @@
   }
   @media (hover: hover) { .dienst:hover { border-color: #5a5a60; } }
   .dienst b { font-size: 18px; font-weight: 700; }
-  .dienst .prijs { color: var(--zacht); font-size: 15px; font-weight: 500; margin-left: 8px; white-space: nowrap; }
+  .dienst .prijs { color: var(--zacht); font-size: 15px; font-weight: 500; }
   .dienst .duur { grid-row: 1; grid-column: 2; font-size: 14px; font-weight: 600; border: 1px solid var(--lijn); border-radius: 999px; padding: 3px 12px; white-space: nowrap; }
   .dienst .uitleg { grid-column: 1 / -1; color: var(--zacht); font-size: 15px; }
 
@@ -364,7 +364,10 @@
       var uitleg = el('span', 'uitleg', d.type === 'dagdeel'
         ? 'Binnen, buiten of allebei. Je brengt de auto in de ochtend of middag.'
         : 'Je brengt de auto om 08:00. Hij is ' + d.dagen + ' werkdagen bij ons.');
-      if (PRIJZEN[d.id]) uitleg.appendChild(el('span', 'prijs', 'vanaf €' + PRIJZEN[d.id])); // achter de uitleg
+      if (PRIJZEN[d.id]) { // als volgende zin achter de uitleg;   = spatie waar de regel niet mag afbreken
+        uitleg.appendChild(document.createTextNode(' '));
+        uitleg.appendChild(el('span', 'prijs', 'Vanaf €' + PRIJZEN[d.id] + ' excl. btw.'));
+      }
       knop.appendChild(uitleg);
       knop.onclick = function () { kiesDienst(d); };
       box.appendChild(knop);
