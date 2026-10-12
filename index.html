@@ -204,7 +204,7 @@
     <span class="ster-groot" aria-hidden="true">✦</span>
     <h1>Aanvraag verstuurd</h1>
     <p class="intro" id="klaarTekst"></p>
-    <p class="intro">We checken de planning en sturen je zo snel mogelijk een bevestiging per mail. Zie je onze bevestiging niet in je inbox staan? Check dan ook je spamfolder.</p>
+    <p class="intro">We checken de planning en sturen je zo snel mogelijk een bevestiging per mail. Zie je onze bevestiging niet in je inbox staan? Check dan ook je spam.</p>
   </section>
 </main>
 
@@ -307,7 +307,7 @@
         if (e.vanServer) throw e;
         if (n < max) return wacht(1500).then(function () { return probeer(n + 1); });
         throw Fout('Er ging iets mis bij het versturen, dus we weten niet zeker of je aanvraag is aangekomen. ' +
-          'Kijk over een paar minuten in je mail (ook in je spamfolder). ' +
+          'Kijk over een paar minuten in je mail (ook in je spam). ' +
           (veiligOpnieuw ? 'Geen mail? Druk dan nog een keer op versturen; je aanvraag komt er niet dubbel in.'
                          : 'Geen mail gekregen? Stuur ons dan een appje.'), true);
       });
